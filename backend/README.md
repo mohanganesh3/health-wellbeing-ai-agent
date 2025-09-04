@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 2. Set your Google API key (already configured in the code):
 ```bash
-export GOOGLE_API_KEY="AIzaSyBuk9yz3u-oBcl3psgCXLs0bu4FSGPyFME"
+export GOOGLE_API_KEY=""
 ```
 
 3. Run the Flask server:
