@@ -109,11 +109,11 @@ Here's a high-level overview of the system architecture:
 
 ```mermaid
 graph TD
-    A[User] -->|Sends Query| B(React Frontend)
-    B -->|API Request (JSON)| C(Flask Backend)
-    C -->|Gemini API Call| D(Google Gemini AI)
+    A[User 🧑‍💻] -->|Sends Query| B(React Frontend ⚛️)
+    B -->|API Request| C(Flask Backend 🐍)
+    C -->|Gemini API Call| D(Google Gemini AI 🧠)
     D -->|AI Response| C
-    C -->|API Response (JSON)| B
+    C -->|API Response| B
     B -->|Displays Response| A
 ```
 
