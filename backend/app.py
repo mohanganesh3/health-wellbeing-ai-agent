@@ -15,10 +15,16 @@ app = Flask(__name__)
 CORS(app)
 
 # Initialize the Google Gemini model
-os.environ['GOOGLE_API_KEY'] = 'AIzaSyBuk9yz3u-oBcl3psgCXLs0bu4FSGPyFME'
+# Load API key from .env file if it exists, otherwise use the one from environment
+from dotenv import load_dotenv
+load_dotenv()
+
+# Use API key from environment variables
+api_key = os.environ.get('GOOGLE_API_KEY')
 
 try:
-    llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
+    # Pass the API key to the model
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.3, google_api_key=api_key)
     print("✅ Gemini API connected successfully")
 except Exception as e:
     print(f"❌ Error connecting to Gemini API: {e}")
@@ -221,4 +227,4 @@ if __name__ == '__main__':
     print("   - POST /chat - Send messages to the agent")
     print("   - GET /health - Health check")
     print("   - POST /reset - Reset conversation")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

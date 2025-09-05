@@ -8,7 +8,7 @@ Run this to test the backend functionality
 import requests
 import json
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:5001"
 
 def test_health_check():
     """Test the health endpoint"""

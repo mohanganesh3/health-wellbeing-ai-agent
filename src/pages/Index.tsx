@@ -50,7 +50,7 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/chat', {
+      const response = await fetch('http://localhost:5001/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ const Index = () => {
       console.error('Error sending message:', error);
       toast({
         title: "Connection Error",
-        description: "Unable to connect to the AI agent. Please make sure the backend server is running on localhost:5000.",
+        description: "Unable to connect to the AI agent. Please make sure the backend server is running on localhost:5001.",
         variant: "destructive"
       });
       
@@ -95,7 +95,7 @@ const Index = () => {
 
   const resetChat = async () => {
     try {
-      await fetch('http://localhost:5000/reset', {
+      await fetch('http://localhost:5001/reset', {
         method: 'POST',
       });
       
