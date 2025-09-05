@@ -50,55 +50,164 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 The `App.tsx` component orchestrates the main layout and interaction logic, often containing state for messages and handling user input. Components like `ChatWindow`, `MessageInput`, and `Header` would reside here, each responsible for a specific part of the UI.
 
-### Backend Architecture: Flask and Python
+### Backend Architecture: Flask, Langchain, and Google Gemini
 
-Our backend is a lightweight yet powerful Flask application written in Python. It serves as the bridge between our frontend and the Google Gemini AI model.
+Our backend is a robust Flask application written in Python, designed to act as an intelligent agent. It leverages the power of Langchain to orchestrate interactions with Google's Gemini AI model and various specialized tools. This architecture allows for dynamic and context-aware responses to complex health and wellbeing queries.
 
 **Key Technologies & Patterns:**
 
-*   **Flask**: A micro web framework for Python, ideal for building RESTful APIs.
-*   **Google Generative AI SDK**: The official Python library for interacting with Google's AI models (e.g., Gemini).
-*   **RESTful API**: Defines clear endpoints for communication between frontend and backend.
-*   **Environment Variables**: Securely manages API keys and other sensitive configurations.
+*   **Flask**: A micro web framework for Python, providing the foundation for our RESTful API endpoints.
+*   **Flask-CORS**: Enables Cross-Origin Resource Sharing, allowing our React frontend to securely communicate with the Flask backend.
+*   **Langchain**: A powerful framework for developing applications powered by language models. It facilitates the creation of agents that can intelligently use tools.
+*   **Google Generative AI SDK (`langchain_google_genai`)**: Integrates Google's Gemini models into our Langchain agent, enabling advanced conversational AI capabilities.
+*   **DuckDuckGo Search (`langchain_community.tools`)**: Provides the agent with real-time search capabilities to fetch up-to-date information.
+*   **Custom Tools**: Specialized Python functions wrapped as Langchain tools for specific health and fitness calculations (e.g., BMI, calorie estimation) and mental wellness assessments.
+*   **Agent Executor**: The core of our intelligent agent, responsible for deciding which tools to use based on user input and orchestrating the flow of information.
+*   **Conversation Buffer Memory**: Maintains chat history, allowing the agent to have context-aware conversations.
+*   **Environment Variables**: Securely manages sensitive configurations like API keys.
 
-**Core API Endpoint:**
+**Core Backend Logic (`app.py`):**
 
 ```python:/backend/app.py
+import os
+import json
 from flask import Flask, request, jsonify
-import google.generativeai as genai
-import os # Import os to access environment variables
+from flask_cors import CORS
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain_community.tools import DuckDuckGoSearchRun
+from langchain.tools import Tool
+from langchain import hub
+from langchain.memory import ConversationBufferMemory
+from datetime import datetime
 
 app = Flask(__name__)
+CORS(app)
 
-# Configure the Google Generative AI with an API key from environment variables.
-# This ensures that sensitive information is not hardcoded.
-genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+# Initialize the Google Gemini model
+from dotenv import load_dotenv
+load_dotenv()
 
-# Initialize the GenerativeModel. 'gemini-pro' is chosen for its general-purpose capabilities.
-model = genai.GenerativeModel('gemini-pro')
+api_key = os.environ.get('GOOGLE_API_KEY')
 
-@app.route('/api/chat', methods=['POST'])
+try:
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.3, google_api_key=api_key)
+    print("✅ Gemini API connected successfully")
+except Exception as e:
+    print(f"❌ Error connecting to Gemini API: {e}")
+
+# Initialize tools
+search_tool = DuckDuckGoSearchRun()
+
+# Health and Fitness specific tools (simplified for brevity)
+def calculate_bmi(weight_kg, height_cm):
+    # ... (implementation details)
+    pass
+
+def calculate_calories(age, weight, height, gender, activity_level):
+    # ... (implementation details)
+    pass
+
+# Mental health assessment tools (simplified for brevity)
+def assess_stress_level(stress_indicators):
+    # ... (implementation details)
+    pass
+
+def suggest_mental_wellness_activities(mood, energy_level):
+    # ... (implementation details)
+    pass
+
+# Create tools for the agent
+bmi_tool = Tool(
+    name="BMI_Calculator",
+    description="Calculate BMI when given weight in kg and height in cm. Use this when users ask about BMI or weight status.",
+    func=lambda x: calculate_bmi(*[float(i) for i in x.split(',')])
+)
+
+calorie_tool = Tool(
+    name="Calorie_Calculator", 
+    description="Calculate daily calorie needs when given age,weight,height,gender,activity_level separated by commas",
+    func=lambda x: calculate_calories(*x.split(','))
+)
+
+stress_tool = Tool(
+    name="Stress_Assessment",
+    description="Assess stress level based on user's description of their current state",
+    func=assess_stress_level
+)
+
+wellness_tool = Tool(
+    name="Wellness_Activities",
+    description="Suggest mental wellness activities based on mood and energy level (format: mood,energy_level)",
+    func=lambda x: suggest_mental_wellness_activities(*x.split(','))
+)
+
+search_tool_wrapped = Tool(
+    name="Health_Research",
+    description="Search for current health, fitness, or mental wellness information when you need up-to-date data",
+    func=search_tool.run
+)
+
+# Initialize the agent
+tools = [bmi_tool, calorie_tool, stress_tool, wellness_tool, search_tool_wrapped]
+
+prompt = hub.pull("hwchase17/react")
+
+agent = create_react_agent(llm, tools, prompt)
+
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    memory=memory,
+    verbose=True,
+    handle_parsing_errors=True,
+    max_iterations=3
+)
+
+SYSTEM_PROMPT = """
+You are a comprehensive AI Health & Mental Wellbeing Agent. You help users with:
+
+1. HEALTH & FITNESS:
+   - Personalized diet and fitness plans
+   - BMI calculations and health assessments
+   - Calorie recommendations
+   - Exercise routines and nutrition advice
+   
+2. MENTAL WELLBEING:
+   - Stress level assessment
+   - Mental health support and guidance
+   - Wellness activity suggestions
+   - Emotional support and coping strategies
+
+IMPORTANT GUIDELINES:
+- Always be empathetic and supportive
+- Provide evidence-based advice
+- Suggest professional help when needed
+- Use tools when specific calculations are required
+- Keep responses practical and actionable
+- Maintain a caring, professional tone
+
+If users provide personal health data (age, weight, height, etc.), use the appropriate tools to give personalized recommendations.
+For mental health concerns, be supportive but always recommend professional help for serious issues.
+"""
+
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
+
+@app.route('/chat', methods=['POST'])
 def chat():
-    # Expects a JSON payload with a 'message' field from the frontend.
-    data = request.json
-    if not data or 'message' not in data:
-        return jsonify({'error': 'Invalid request: "message" field missing'}), 400
-
-    user_message = data['message']
-    print(f"Received message: {user_message}") # Log incoming messages for debugging
-
     try:
-        # Send the user's message to the Gemini model and get a response.
-        response = model.generate_content(user_message)
-        # Return the AI's response as a JSON object.
-        return jsonify({'response': response.text})
-    except Exception as e:
-        print(f"Error generating content: {e}") # Log errors
-        return jsonify({'error': 'Failed to generate AI response'}), 500
-
-if __name__ == '__main__':
-    # Run the Flask application. In a production environment, a WSGI server like Gunicorn would be used.
-    app.run(debug=True, host='0.0.0.0', port=5000)
+        data = request.get_json()
+        user_message = data.get('message', '')
+        
+        if not user_message:
+            return jsonify({"error": "No message provided"}), 400
+        
+        full_input = f"{SYSTEM_PROMPT}\n\nUser: {user_message}"
+        # ... (rest of the chat function logic)
 ```
 
 ### Communication Flow: Frontend to Backend
