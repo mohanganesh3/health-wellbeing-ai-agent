@@ -110,10 +110,10 @@ Here's a high-level overview of the system architecture:
 ```mermaid
 graph TD
     A[User 🧑‍💻] -->|Sends Query| B(React Frontend ⚛️)
-    B -->|API Request| C(Flask Backend 🐍)
-    C -->|Gemini API Call| D(Google Gemini AI 🧠)
-    D -->|AI Response| C
-    C -->|API Response| B
+        React Frontend ⚛️ (Vite, TypeScript, Tailwind CSS) -- API Request (Axios) --> Flask Backend 🐍 (Python, Flask, Gunicorn)
+        Flask Backend 🐍 -- Gemini API Call (Google Generative AI SDK) --> Google Gemini AI 🧠
+        Google Gemini AI 🧠 -- AI Response (JSON) --> Flask Backend 🐍
+        Flask Backend 🐍 -- API Response (JSON) --> React Frontend ⚛️
     B -->|Displays Response| A
 ```
 
