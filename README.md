@@ -105,6 +105,18 @@ if __name__ == '__main__':
 
 The frontend communicates with the backend via HTTP requests. When a user sends a message, the React application makes a `POST` request to the `/api/chat` endpoint with the user's message in the request body. The Flask backend then processes this message, interacts with the Gemini AI, and sends the AI's response back to the frontend.
 
+Here's a high-level overview of the system architecture:
+
+```mermaid
+graph TD
+    A[User] -->|Sends Query| B(React Frontend)
+    B -->|API Request (JSON)| C(Flask Backend)
+    C -->|Gemini API Call| D(Google Gemini AI)
+    D -->|AI Response| C
+    C -->|API Response (JSON)| B
+    B -->|Displays Response| A
+```
+
 ## 🛠️ Implementation Details & Code Walkthrough
 
 Let's dive into some specific implementations that address key functionalities and challenges.
